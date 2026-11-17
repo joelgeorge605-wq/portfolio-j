@@ -1,206 +1,115 @@
+/* ============================================================
+   JOELLABS PORTFOLIO — Shared JavaScript
+   Handles: footer year, cursor light, scroll progress,
+   condensed navbar, card reveal, pointer tilt,
+   mobile nav auto-close, active nav link by pathname.
+   ============================================================ */
+(function () {
+  'use strict';
 
-// ========================================
-// JOELLABS - MULTI-PAGE JAVASCRIPT
-// ========================================
+  /* ---- Feature detection --------------------------------- */
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var fine   = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
+  /* Mark <html> so CSS can gate initial card states */
+  document.documentElement.classList.add('js');
 
-// 1. TYPING ANIMATION
-// Runs only on homepage.
+  /* ---- Footer year --------------------------------------- */
+  var yearEl = document.getElementById('current-year');
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-const typingText = document.getElementById("typing-text");
+  /* ---- Cursor light (fine pointer only) ------------------ */
+  var light = document.getElementById('cursorLight');
+  if (light && fine) {
+    window.addEventListener('pointermove', function (e) {
+      light.style.transform = 'translate(' + e.clientX + 'px,' + e.clientY + 'px)';
+    }, { passive: true });
+  }
 
-if (typingText) {
+  /* ---- Scroll progress bar + condensed navbar ------------ */
+  var bar = null;
+  if (!reduce) {
+    bar = document.createElement('div');
+    bar.className = 'scroll-progress';
+    bar.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(bar);
+  }
+  var nav = document.querySelector('.navbar-custom');
+  var ticking = false;
+  function onScroll() {
+    var y   = window.scrollY || document.documentElement.scrollTop;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    if (bar) bar.style.transform = 'scaleX(' + (max > 0 ? Math.min(y / max, 1) : 0) + ')';
+    if (nav) nav.classList.toggle('is-scrolled', y > 24);
+    ticking = false;
+  }
+  window.addEventListener('scroll', function () {
+    if (!ticking) { ticking = true; requestAnimationFrame(onScroll); }
+  }, { passive: true });
+  onScroll();
 
-    const roles = [
-        "Software Developer",
-        "Web Developer",
-        "Creative Thinker",
-        "Problem Solver"
-    ];
-
-    let roleIndex = 0;
-    let charIndex = 0;
-    let deleting = false;
-
-    function typeEffect() {
-
-        const currentRole = roles[roleIndex];
-
-        if (deleting) {
-            charIndex--;
-        } else {
-            charIndex++;
-        }
-
-        typingText.textContent =
-            currentRole.substring(0, charIndex);
-
-        let speed = deleting ? 45 : 90;
-
-        if (!deleting && charIndex === currentRole.length) {
-            deleting = true;
-            speed = 1500;
-        }
-
-        if (deleting && charIndex === 0) {
-            deleting = false;
-            roleIndex = (roleIndex + 1) % roles.length;
-            speed = 400;
-        }
-
-        setTimeout(typeEffect, speed);
+  /* ---- Active nav link by pathname ----------------------- */
+  var currentPage = (window.location.pathname.split('/').pop().toLowerCase()) || 'index.html';
+  document.querySelectorAll('.navbar-nav .nav-link').forEach(function (link) {
+    var href = link.getAttribute('href') || '';
+    var linkPage = href.split('/').pop().toLowerCase();
+    link.classList.remove('active');
+    if (linkPage === currentPage || (currentPage === '' && linkPage === 'index.html')) {
+      link.classList.add('active');
     }
+  });
 
-    typeEffect();
-
-}
-
-
-// 2. 3D MOUSE MOVEMENT
-// Runs only when the homepage scene exists.
-
-const scene = document.getElementById("scene");
-const sphere = document.getElementById("sphere");
-
-const canUseMouse = window.matchMedia(
-    "(hover: hover) and (pointer: fine)"
-).matches;
-
-if (scene && sphere && canUseMouse) {
-
-    scene.addEventListener("mousemove", function(event) {
-
-        const rect = scene.getBoundingClientRect();
-
-        const x = (event.clientX - rect.left) / rect.width;
-        const y = (event.clientY - rect.top) / rect.height;
-
-        const rotateY = (x - 0.5) * 18;
-        const rotateX = (0.5 - y) * 18;
-
-        scene.style.transform =
-            `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-
-    });
-
-    scene.addEventListener("mouseleave", function() {
-
-        scene.style.transform =
-            "rotateX(0deg) rotateY(0deg)";
-
-    });
-
-}
-
-
-// 3. COPYRIGHT YEAR
-
-const currentYear = document.getElementById("current-year");
-
-if (currentYear) {
-    currentYear.textContent = new Date().getFullYear();
-}
-
-
-// 4. MOBILE NAVIGATION
-
-const navLinks = document.querySelectorAll(
-    ".navbar-nav .nav-link"
-);
-
-navLinks.forEach(function(link) {
-
-    link.addEventListener("click", function() {
-
-        const menu = document.getElementById("navbarMenu");
-
-        if (menu && menu.classList.contains("show")) {
-
-            bootstrap.Collapse
-                .getOrCreateInstance(menu)
-                .hide();
-
+  /* ---- Mobile nav auto-close on link click --------------- */
+  document.querySelectorAll('.navbar-nav .nav-link').forEach(function (link) {
+    link.addEventListener('click', function () {
+      var menu = document.getElementById('navbarMenu');
+      if (menu && menu.classList.contains('show')) {
+        if (typeof bootstrap !== 'undefined') {
+          bootstrap.Collapse.getOrCreateInstance(menu).hide();
         }
-
+      }
     });
+  });
 
-});
-
-
-// 5. AUTOMATIC ACTIVE NAVIGATION
-
-const currentPage = window.location.pathname
-    .split("/")
-    .pop()
-    .toLowerCase() || "index.html";
-
-navLinks.forEach(function(link) {
-
-    const linkPage = link.getAttribute("href")
-        .split("/")
-        .pop()
-        .toLowerCase();
-
-    link.classList.remove("active");
-
-    if (linkPage === currentPage) {
-        link.classList.add("active");
-    }
-
-});
-
-
-
-/* ==================================
-   SCROLL REVEAL ANIMATION
-================================== */
-
-const revealElements = document.querySelectorAll(
-    ".section-title, .about-visual, .about-details, " +
-    ".glass-card, .project-card, .journey-card, " +
-    ".contact-info-card, .contact-message-card"
-);
-
-const reduceMotion = window.matchMedia(
-    "(prefers-reduced-motion: reduce)"
-).matches;
-
-if (reduceMotion) {
-
-    revealElements.forEach(element => {
-        element.classList.add("visible");
+  /* ---- Card-group reveal with IntersectionObserver ------- */
+  var groups = document.querySelectorAll('.reveal');
+  /* Assign stagger index --k to each tiltable child */
+  groups.forEach(function (g) {
+    g.querySelectorAll('[data-tilt], .project-card, .card3d').forEach(function (c, i) {
+      c.style.setProperty('--k', i);
     });
-
-} else {
-
-    revealElements.forEach(element => {
-        element.classList.add("reveal");
+  });
+  function enableTilt(g) {
+    g.querySelectorAll('[data-tilt], .project-card, .card3d').forEach(function (c) {
+      c.classList.add('tilting');
     });
+  }
+  if ('IntersectionObserver' in window && !reduce) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        en.target.classList.add('in');
+        io.unobserve(en.target);
+        setTimeout(function () { enableTilt(en.target); }, 1400);
+      });
+    }, { threshold: 0.1 });
+    groups.forEach(function (g) { io.observe(g); });
+  } else {
+    groups.forEach(function (g) { g.classList.add('in'); enableTilt(g); });
+  }
 
-    const revealObserver = new IntersectionObserver(
-        (entries, observer) => {
-
-            entries.forEach(entry => {
-
-                if (entry.isIntersecting) {
-
-                    entry.target.classList.add("visible");
-
-                    observer.unobserve(entry.target);
-
-                }
-
-            });
-
-        },
-        {
-            threshold: 0.12,
-            rootMargin: "0px 0px -35px 0px"
-        }
-    );
-
-    revealElements.forEach(element => {
-        revealObserver.observe(element);
+  /* ---- Pointer tilt on [data-tilt] cards ----------------- */
+  if (reduce || !fine) return;
+  document.querySelectorAll('[data-tilt]').forEach(function (card) {
+    var k = parseFloat(card.getAttribute('data-tilt')) || 1;
+    card.addEventListener('pointermove', function (e) {
+      var b = card.getBoundingClientRect();
+      var x = (e.clientX - b.left) / b.width  - .5;
+      var y = (e.clientY - b.top)  / b.height - .5;
+      card.classList.add('tilting');
+      card.style.transform = 'rotateX(' + (-y * 11 * k) + 'deg) rotateY(' + (x * 13 * k) + 'deg) translateZ(8px)';
     });
+    card.addEventListener('pointerleave', function () { card.style.transform = ''; });
+  });
 
-}
+})();
